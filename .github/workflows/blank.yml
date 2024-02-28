@@ -1,0 +1,42 @@
+name: Auto Update Forksss
+
+on:
+  push:
+    branches:
+      - main  # Replace with the branch you want to trigger the workflow on
+  schedule:
+    - cron: '0 */12 * * *'  # Run every hour
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+
+
+      - name: Fetch upstream changes
+        run: |
+          git remote add upstream https://github.com/LineageOS/android.git
+          git fetch upstream
+
+      - name: Iterate over branches and update
+        run: |
+          for branch in $(git branch -a | grep remotes/origin | grep -v HEAD | awk '{gsub(/remotes\/origin\//,"");print}'); do
+            git checkout $branch
+            git merge --allow-unrelated-histories upstream/$branch
+            git push origin $branch
+          done
+
+      - name: Use Git Config Values
+        run: |
+          echo "Using GitHub username: ${{ steps.git-config.outputs.USERNAME }}"
+          echo "Using GitHub email: ${{ steps.git-config.outputs.EMAIL }}"
